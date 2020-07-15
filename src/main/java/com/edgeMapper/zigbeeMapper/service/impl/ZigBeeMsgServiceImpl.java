@@ -1,10 +1,13 @@
 package com.edgeMapper.zigbeeMapper.service.impl;
 
+import com.edgeMapper.zigbeeMapper.config.DeviceConfig;
+import com.edgeMapper.zigbeeMapper.service.MqttService;
 import com.edgeMapper.zigbeeMapper.service.ZigBeeMsgService;
 import com.edgeMapper.zigbeeMapper.util.ByteUtil;
 import com.edgeMapper.zigbeeMapper.util.GateWayUtil;
 import com.google.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
@@ -16,6 +19,12 @@ import java.util.Arrays;
 @Slf4j
 @Service
 public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
+
+    @Autowired
+    private DeviceConfig deviceConfig;
+
+    @Autowired
+    private MqttService mqttService;
 
     @Override
     public void processMsg(byte[] bytes) {
@@ -41,14 +50,20 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                 if (bytes[10 + i * 5] == 0x29) {
                                     BigDecimal b = new BigDecimal((double) GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5)) / (double) 100);
                                     temperature = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-                                    data.addProperty("temperature", temperature);
+                                    data.addProperty("temperature", String.valueOf(temperature));
                                 }
                             } else if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("1100")) { // TODO 旧版本API文档表示 0204是温湿度
                                 if (bytes[10 + i * 5] == 0x29) {
                                     humidity = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    data.addProperty("humidity", (double) humidity);
+                                    data.addProperty("humidity", String.valueOf(humidity));
                                 }
                             }
+                        }
+                        if (deviceConfig.getZigbeeDevices().containsKey("0204")) {
+                            String deviceName = deviceConfig.getZigbeeDevices().get("0204");
+                            mqttService.updateDeviceTwin(deviceName, data);
+                        } else {
+                            log.error("云端不存在此设备，或是设备名不匹配");
                         }
                         break;
 
@@ -58,26 +73,31 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0100")) {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    data.addProperty("PM1.0", (double) pm);
+                                    data.addProperty("PM1.0", String.valueOf(pm));
                                 }
                             } else if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0000")) {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    data.addProperty("PM2.5", (double) pm);
+                                    data.addProperty("PM2.5", String.valueOf(pm));
                                 }
                             } else if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0200")) {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    data.addProperty("PM10", (double) pm);
+                                    data.addProperty("PM10", String.valueOf(pm));
                                 }
                             }
+                        }
+                        if (deviceConfig.getZigbeeDevices().containsKey("1504")) {
+                            String deviceName = deviceConfig.getZigbeeDevices().get("1504");
+                            mqttService.updateDeviceTwin(deviceName, data);
+                        } else {
+                            log.error("云端不存在此设备，或是设备名不匹配");
                         }
                         break;
 
                     default:
                         break;
                 }
-                log.info("device data is {}",data);
                 break;
             case 0x01:
                 log.info("全部设备信息={}",bytes);

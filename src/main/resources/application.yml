@@ -16,6 +16,6 @@ zigbee:
 
 device:
   zigbeeDevices:
-    sensor1: 0204
-    pm2.5: 1504
+    "0204": sensor1
+    "1504": pm2.5
 

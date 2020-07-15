@@ -1,6 +1,7 @@
-package com.edgeMapper.zigbeeMapper.config;
+package com.edgeMapper.zigbeeMapper.mqtt;
 
-import com.edgeMapper.zigbeeMapper.mqtt.EdgeMqttCallback;
+import com.edgeMapper.zigbeeMapper.config.Constants;
+import com.edgeMapper.zigbeeMapper.config.MqttConfig;
 import lombok.extern.slf4j.Slf4j;
 import org.eclipse.paho.client.mqttv3.MqttClient;
 import org.eclipse.paho.client.mqttv3.MqttConnectOptions;
@@ -24,6 +25,9 @@ public class EdgeMqttClient {
     @Autowired
     private MqttClient mqttClient;
 
+    @Autowired
+    private EdgeMqttCallback edgeMqttCallback;
+
     @Bean
     public MqttClient defaultMqttClient() throws MqttException {
         return new MqttClient(mqttConfig.getServer(), mqttConfig.getClientId(),new MemoryPersistence());
@@ -39,7 +43,7 @@ public class EdgeMqttClient {
 
     @PostConstruct
     public void init() throws MqttException {
-        mqttClient.setCallback(new EdgeMqttCallback(this));
+        mqttClient.setCallback(edgeMqttCallback);
         mqttClient.connect(getOptions());
         mqttClient.subscribe(Constants.DeviceETPrefix + "+" + Constants.TwinETUpdateSuffix + "/+",1);
         if (mqttClient.isConnected()) {
