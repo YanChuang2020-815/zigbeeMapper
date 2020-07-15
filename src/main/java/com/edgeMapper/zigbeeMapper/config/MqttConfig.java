@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Configuration;
 @Data
 @Configuration
 @ConfigurationProperties(prefix = "mqtt")
-public class Config {
+public class MqttConfig {
     private int mode;
 
     private String server;

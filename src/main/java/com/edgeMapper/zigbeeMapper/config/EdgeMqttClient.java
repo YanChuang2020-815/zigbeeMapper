@@ -19,21 +19,21 @@ import javax.annotation.PostConstruct;
 @Configuration
 public class EdgeMqttClient {
     @Autowired
-    private Config config;
+    private MqttConfig mqttConfig;
 
     @Autowired
     private MqttClient mqttClient;
 
     @Bean
     public MqttClient defaultMqttClient() throws MqttException {
-        return new MqttClient(config.getServer(),config.getClientId(),new MemoryPersistence());
+        return new MqttClient(mqttConfig.getServer(), mqttConfig.getClientId(),new MemoryPersistence());
     }
 
     private MqttConnectOptions getOptions() {
         MqttConnectOptions options = new MqttConnectOptions();
-        options.setCleanSession(config.isCleanSession());
-        options.setConnectionTimeout(config.getConnectionTimeout());
-        options.setKeepAliveInterval(config.getKeepAliveInterval());
+        options.setCleanSession(mqttConfig.isCleanSession());
+        options.setConnectionTimeout(mqttConfig.getConnectionTimeout());
+        options.setKeepAliveInterval(mqttConfig.getKeepAliveInterval());
         return options;
     }
 
