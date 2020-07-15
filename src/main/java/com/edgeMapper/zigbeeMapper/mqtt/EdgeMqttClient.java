@@ -45,7 +45,7 @@ public class EdgeMqttClient {
     public void init() throws MqttException {
         mqttClient.setCallback(edgeMqttCallback);
         mqttClient.connect(getOptions());
-        mqttClient.subscribe(Constants.DeviceETPrefix + "+" + Constants.TwinETUpdateSuffix + "/+",1);
+        mqttClient.subscribe(Constants.DeviceETPrefix + "+" + Constants.TwinETUpdateSuffix + "/+",0);
         if (mqttClient.isConnected()) {
             log.info("Mosquitto连接成功");
         }
