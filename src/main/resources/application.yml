@@ -3,8 +3,8 @@ server:
 
 mqtt:
   mode: 0
-  server: tcp://127.0.0.1:1883
-  internal-server: tcp://127.0.0.1:1884
+  server: tcp://192.168.1.6:1883
+  internal-server: tcp://192.168.1.6:1884
   client-id: eventbus
   cleanSession: true
   connectionTimeout: 5
@@ -19,3 +19,32 @@ device:
     "0204": sensor1
     "1504": pm2.5
 
+rocketmq:
+  consumer:
+    isOnOff: on
+    groupName: zigbee-consumer
+    namesrvAddr: 123.56.46.27:9876
+    topics: getDeviceData,*
+    consumeThreadMin: 5
+    consumeThreadMax: 32
+    consumeMessageBatchMaxSize: 1
+
+  producer:
+    isOnOff: on
+    groupName: zigbee-producer
+    namesrvAddr: 123.56.46.27:9876
+    maxMessageSize: 4096
+    sendMsgTimeOut: 3000
+    retryTimesWhenSendFailed: 2
+
+spring:
+  redis:
+    database: 0
+    host: 123.56.46.27
+    port: 6379
+    pool:
+      max-active: 4
+      max-wait: -1
+      max-idel: 4
+      min-idel: 0
+    timeout: 1000

@@ -1,17 +1,22 @@
 package com.edgeMapper.zigbeeMapper.service.impl;
 
 import com.edgeMapper.zigbeeMapper.config.DeviceConfig;
+import com.edgeMapper.zigbeeMapper.model.dto.DeviceDataDto;
+import com.edgeMapper.zigbeeMapper.model.dto.SingleDataDto;
 import com.edgeMapper.zigbeeMapper.service.MqttService;
 import com.edgeMapper.zigbeeMapper.service.ZigBeeMsgService;
 import com.edgeMapper.zigbeeMapper.util.ByteUtil;
 import com.edgeMapper.zigbeeMapper.util.GateWayUtil;
+import com.edgeMapper.zigbeeMapper.util.RedisUtil;
 import com.google.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * Created by rongshuai on 2020/7/15 10:54
@@ -25,6 +30,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
 
     @Autowired
     private MqttService mqttService;
+
+    @Autowired
+    private RedisUtil redisUtil;
 
     @Override
     public void processMsg(byte[] bytes) {
@@ -43,24 +51,37 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                 Integer endPoint = Integer.parseInt(String.valueOf(bytes[4]));
                 String clusterId = GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 5, 7));
                 log.info("clusterId is {}",clusterId);
+                DeviceDataDto deviceDataDto = new DeviceDataDto();
+                List<SingleDataDto> dataDtos = new ArrayList<>();
                 switch (clusterId) {
                     case "0204":  // 温度传感器上报数据
                         for (int i = 0; i < Integer.parseInt(String.valueOf(bytes[7])); i++) {
                             if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0000")) {
                                 if (bytes[10 + i * 5] == 0x29) {
+                                    SingleDataDto dataDto = new SingleDataDto();
                                     BigDecimal b = new BigDecimal((double) GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5)) / (double) 100);
                                     temperature = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
                                     data.addProperty("temperature", String.valueOf(temperature));
+                                    dataDto.setName("temperature");
+                                    dataDto.setValue(String.valueOf(temperature));
+                                    dataDtos.add(dataDto);
                                 }
                             } else if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("1100")) { // TODO 旧版本API文档表示 0204是温湿度
                                 if (bytes[10 + i * 5] == 0x29) {
+                                    SingleDataDto dataDto = new SingleDataDto();
                                     humidity = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
                                     data.addProperty("humidity", String.valueOf(humidity));
+                                    dataDto.setName("humidity");
+                                    dataDto.setValue(String.valueOf(humidity));
+                                    dataDtos.add(dataDto);
                                 }
                             }
                         }
                         if (deviceConfig.getZigbeeDevices().containsKey("0204")) {
                             String deviceName = deviceConfig.getZigbeeDevices().get("0204");
+                            deviceDataDto.setDeviceName(deviceName);
+                            deviceDataDto.setDataList(dataDtos);
+                            redisUtil.set(deviceName,deviceDataDto);
                             mqttService.updateDeviceTwin(deviceName, data);
                         } else {
                             log.error("云端不存在此设备，或是设备名不匹配");
@@ -72,23 +93,38 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                         for (int i = 0; i < Integer.parseInt(String.valueOf(bytes[7])); i++) {
                             if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0100")) {
                                 if (bytes[10 + i * 5] == 0x21) {
+                                    SingleDataDto dataDto = new SingleDataDto();
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
                                     data.addProperty("PM1.0", String.valueOf(pm));
+                                    dataDto.setName("PM1.0");
+                                    dataDto.setValue(String.valueOf(pm));
+                                    dataDtos.add(dataDto);
                                 }
                             } else if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0000")) {
                                 if (bytes[10 + i * 5] == 0x21) {
+                                    SingleDataDto dataDto = new SingleDataDto();
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
                                     data.addProperty("PM2.5", String.valueOf(pm));
+                                    dataDto.setName("PM2.5");
+                                    dataDto.setValue(String.valueOf(pm));
+                                    dataDtos.add(dataDto);
                                 }
                             } else if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0200")) {
                                 if (bytes[10 + i * 5] == 0x21) {
+                                    SingleDataDto dataDto = new SingleDataDto();
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
                                     data.addProperty("PM10", String.valueOf(pm));
+                                    dataDto.setName("PM10");
+                                    dataDto.setValue(String.valueOf(pm));
+                                    dataDtos.add(dataDto);
                                 }
                             }
                         }
                         if (deviceConfig.getZigbeeDevices().containsKey("1504")) {
                             String deviceName = deviceConfig.getZigbeeDevices().get("1504");
+                            deviceDataDto.setDeviceName(deviceName);
+                            deviceDataDto.setDataList(dataDtos);
+                            redisUtil.set(deviceName,deviceDataDto);
                             mqttService.updateDeviceTwin(deviceName, data);
                         } else {
                             log.error("云端不存在此设备，或是设备名不匹配");

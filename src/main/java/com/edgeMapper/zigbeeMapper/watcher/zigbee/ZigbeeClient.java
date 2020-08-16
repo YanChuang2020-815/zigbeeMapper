@@ -1,5 +1,6 @@
 package com.edgeMapper.zigbeeMapper.watcher.zigbee;
 
+import com.edgeMapper.zigbeeMapper.config.ZigBeeConfig;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.ChannelInitializer;
@@ -7,35 +8,31 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
-import lombok.Data;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.context.properties.ConfigurationProperties;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.boot.CommandLineRunner;
+import org.springframework.stereotype.Component;
 
-import javax.annotation.PostConstruct;
 import java.net.InetSocketAddress;
 
 /**
  * Created by rongshuai on 2020/7/15 9:56
  */
-@Configuration
-@ConfigurationProperties(prefix = "zigbee")
-@Data
-public class ZigbeeClient {
-    private String host;
-    private int port;
+@Component
+public class ZigbeeClient implements CommandLineRunner {
 
     @Autowired
     private ZigbeeHandler zigbeeHandler;
 
-    @PostConstruct
-    public void start() throws Exception {
+    @Autowired
+    private ZigBeeConfig zigBeeConfig;
+
+    public void run(String... var1) throws Exception {
         EventLoopGroup group = new NioEventLoopGroup();
         try {
             Bootstrap b = new Bootstrap();
             b.group(group)
                     .channel(NioSocketChannel.class)
-                    .remoteAddress(new InetSocketAddress(host, port))
+                    .remoteAddress(new InetSocketAddress(zigBeeConfig.getHost(), zigBeeConfig.getPort()))
                     .handler(new ChannelInitializer<SocketChannel>() {
                         @Override
                         public void initChannel (SocketChannel ch)
