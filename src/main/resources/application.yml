@@ -3,21 +3,22 @@ server:
 
 mqtt:
   mode: 0
-  server: tcp://192.168.1.6:1883
-  internal-server: tcp://192.168.1.6:1884
+  server: tcp://192.168.137.162:1883
+  internal-server: tcp://192.168.137.162:1884
   client-id: eventbus
   cleanSession: true
   connectionTimeout: 5
   keepAliveInterval: 20
 
 zigbee:
-  host: 192.168.1.4
+  host: 192.168.1.102
   port: 8001
 
 device:
   zigbeeDevices:
-    "0204": sensor1
+    "0204": sensor2
     "1504": pm2.5
+    "0004": lightsensor1
 
 rocketmq:
   consumer:

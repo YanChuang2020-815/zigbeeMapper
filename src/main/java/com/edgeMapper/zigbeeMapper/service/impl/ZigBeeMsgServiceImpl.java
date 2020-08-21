@@ -130,7 +130,30 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             log.error("云端不存在此设备，或是设备名不匹配");
                         }
                         break;
-
+                    case "0004":
+                        for (int i = 0; i < Integer.parseInt(String.valueOf(bytes[7])); i++) {
+                            int illumination;
+                            if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0000")) {
+                                if (bytes[10 + i * 5] == 0x21) {
+                                    SingleDataDto dataDto = new SingleDataDto();
+                                    illumination = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
+                                    data.addProperty("illumination", String.valueOf(illumination));
+                                    dataDto.setName("illumination");
+                                    dataDto.setValue(String.valueOf(illumination));
+                                    dataDtos.add(dataDto);
+                                }
+                            }
+                        }
+                        if (deviceConfig.getZigbeeDevices().containsKey("0004")) {
+                            String deviceName = deviceConfig.getZigbeeDevices().get("0004");
+                            deviceDataDto.setDeviceName(deviceName);
+                            deviceDataDto.setDataList(dataDtos);
+                            redisUtil.set(deviceName,deviceDataDto);
+                            mqttService.updateDeviceTwin(deviceName, data);
+                        } else {
+                            log.error("云端不存在此设备，或是设备名不匹配");
+                        }
+                        break;
                     default:
                         break;
                 }
