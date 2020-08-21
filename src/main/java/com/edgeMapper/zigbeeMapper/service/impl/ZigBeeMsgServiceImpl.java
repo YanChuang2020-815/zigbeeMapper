@@ -45,6 +45,8 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                 int pm;
                 int illumination;
 
+                boolean isAlarm = false;
+
                 JsonObject data = new JsonObject();
 
                 int length = Integer.parseInt(String.valueOf(bytes[1]));
@@ -62,7 +64,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     BigDecimal b = new BigDecimal((double) GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5)) / (double) 100);
                                     temperature = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-                                    if (temperature < 40.0) break;
+                                    if (temperature >= 40.0) {
+                                        isAlarm = true;
+                                    }
                                     data.addProperty("temperature", String.valueOf(temperature));
                                     dataDto.setName("temperature");
                                     dataDto.setValue(String.valueOf(temperature));
@@ -84,7 +88,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             deviceDataDto.setDeviceName(deviceName);
                             deviceDataDto.setDataList(dataDtos);
                             redisUtil.set(deviceName,deviceDataDto);
-                            mqttService.updateDeviceTwin(deviceName, data);
+                            if (isAlarm) {
+                                mqttService.updateDeviceTwin(deviceName, data);
+                            }
                         } else {
                             log.error("云端不存在此设备，或是设备名不匹配");
                         }
@@ -106,7 +112,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    if (pm < 40) break;
+                                    if (pm >= 40) {
+                                        isAlarm = true;
+                                    }
                                     data.addProperty("PM2.5", String.valueOf(pm));
                                     dataDto.setName("PM2.5");
                                     dataDto.setValue(String.valueOf(pm));
@@ -128,7 +136,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             deviceDataDto.setDeviceName(deviceName);
                             deviceDataDto.setDataList(dataDtos);
                             redisUtil.set(deviceName,deviceDataDto);
-                            mqttService.updateDeviceTwin(deviceName, data);
+                            if (isAlarm) {
+                                mqttService.updateDeviceTwin(deviceName, data);
+                            }
                         } else {
                             log.error("云端不存在此设备，或是设备名不匹配");
                         }
@@ -139,7 +149,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     illumination = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    if (illumination < 500) break;
+                                    if (illumination >= 500) {
+                                        isAlarm = true;
+                                    }
                                     data.addProperty("illumination", String.valueOf(illumination));
                                     dataDto.setName("illumination");
                                     dataDto.setValue(String.valueOf(illumination));
@@ -152,7 +164,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             deviceDataDto.setDeviceName(deviceName);
                             deviceDataDto.setDataList(dataDtos);
                             redisUtil.set(deviceName,deviceDataDto);
-                            mqttService.updateDeviceTwin(deviceName, data);
+                            if (isAlarm) {
+                                mqttService.updateDeviceTwin(deviceName, data);
+                            }
                         } else {
                             log.error("云端不存在此设备，或是设备名不匹配");
                         }

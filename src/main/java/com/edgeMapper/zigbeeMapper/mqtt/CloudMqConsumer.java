@@ -50,7 +50,12 @@ public class CloudMqConsumer implements MessageListenerConcurrently {
             DeviceDataRequestDto dataRequestDto = JSONObject.parseObject(body,DeviceDataRequestDto.class);
             LOGGER.info("dataRequestDto is {}",dataRequestDto);
 
-            DeviceDataDto deviceDataDto = (DeviceDataDto) redisUtil.get(dataRequestDto.getDeviceName());
+            String deviceName = dataRequestDto.getDeviceName();
+            if (deviceName.equals("pm2")) {
+                deviceName = "pm2.5-1";
+            }
+
+            DeviceDataDto deviceDataDto = (DeviceDataDto) redisUtil.get(deviceName);
             LOGGER.info("deviceDataDto is {}",deviceDataDto);
 
             Message msg = new Message("edgeDeviceData", JSONObject.toJSONString(deviceDataDto).getBytes());
