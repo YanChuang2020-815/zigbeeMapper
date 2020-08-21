@@ -43,6 +43,7 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                 Double temperature;
                 int humidity;
                 int pm;
+                int illumination;
 
                 JsonObject data = new JsonObject();
 
@@ -61,6 +62,7 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     BigDecimal b = new BigDecimal((double) GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5)) / (double) 100);
                                     temperature = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
+                                    if (temperature < 40.0) break;
                                     data.addProperty("temperature", String.valueOf(temperature));
                                     dataDto.setName("temperature");
                                     dataDto.setValue(String.valueOf(temperature));
@@ -104,6 +106,7 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
+                                    if (pm < 40) break;
                                     data.addProperty("PM2.5", String.valueOf(pm));
                                     dataDto.setName("PM2.5");
                                     dataDto.setValue(String.valueOf(pm));
@@ -132,11 +135,11 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                         break;
                     case "0004":
                         for (int i = 0; i < Integer.parseInt(String.valueOf(bytes[7])); i++) {
-                            int illumination;
                             if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0000")) {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     illumination = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
+                                    if (illumination < 500) break;
                                     data.addProperty("illumination", String.valueOf(illumination));
                                     dataDto.setName("illumination");
                                     dataDto.setValue(String.valueOf(illumination));

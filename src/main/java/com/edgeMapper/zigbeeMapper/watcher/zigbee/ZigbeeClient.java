@@ -7,12 +7,15 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.timeout.IdleStateHandler;
+import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.util.concurrent.Future;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.net.InetSocketAddress;
 import java.net.SocketAddress;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,90 +34,64 @@ public class ZigbeeClient{
     @Autowired
     private ZigBeeConfig zigBeeConfig;
 
-    private EventLoopGroup group;
+    private EventLoopGroup group = new NioEventLoopGroup();
 
-    private Bootstrap b;
+    private volatile Channel channel;
 
-    private Channel channel;
+    @PostConstruct
+    public void init() throws InterruptedException {
+        Bootstrap b = new Bootstrap();
+        b.group(group)
+                .channel(NioSocketChannel.class)
+                .option(ChannelOption.SO_KEEPALIVE,true)
+                .remoteAddress(zigBeeConfig.getHost(),zigBeeConfig.getPort())
+                .handler(new ChannelInitializer<SocketChannel>() {
+                    @Override
+                    public void initChannel (SocketChannel ch)
+                        throws Exception {
+                            ch.pipeline()
+                                    .addLast(new ReadTimeoutHandler(5))
+                                    .addLast(
+                                    zigbeeHandler
+                            );
 
-    private ChannelFuture f;
+                        }
+                });
+        b.connect().addListener(new ChannelFutureListener() {
+            @Override
+            public void operationComplete(ChannelFuture channelFuture) throws Exception {
+                if (!channelFuture.isSuccess()) {
+                    log.error("[start][Netty Client 连接服务器({}:{}) 失败]", zigBeeConfig.getHost(), zigBeeConfig.getPort());
+                    reconnect();
+                    return;
+                }
 
-    public void init() throws Exception {
-        group = new NioEventLoopGroup();
-        try {
-            b = new Bootstrap();
-            b.group(group)
-                    .channel(NioSocketChannel.class)
-                    .option(ChannelOption.SO_KEEPALIVE,true)
-                    .remoteAddress(new InetSocketAddress(zigBeeConfig.getHost(),zigBeeConfig.getPort()))
-                    .handler(new ChannelInitializer<SocketChannel>() {
-                        @Override
-                        public void initChannel (SocketChannel ch)
-                            throws Exception {
-                                ch.pipeline().addLast(
-                                        zigbeeHandler
-                                );
-                            }
-                    });
-            f = b.connect(zigBeeConfig.getHost(),zigBeeConfig.getPort()).sync();
-            channel = f.channel();
-            channel.closeFuture().sync();
-//            f = b.connect().sync();
-//            f.channel().closeFuture().sync();
-        } finally {
-            group.shutdownGracefully();
-        }
+                channel = channelFuture.channel();
+                log.error("[start][Netty Client 连接服务器({}:{}) 成功]", zigBeeConfig.getHost(), zigBeeConfig.getPort());
+            }
+        });
     }
 
-    public void close() throws Exception {
-        if (!group.isShutdown()) {
-            group.shutdownGracefully().sync();
-        }
-        init();
+    public void reconnect() {
+        group.schedule(new Runnable() {
+            @Override
+            public void run() {
+                log.info("[reconnect]开始重连");
+                try {
+                    init();
+                } catch (InterruptedException e) {
+                    log.error("[reconnect][重连失败]", e);
+                }
+            }
+        },5,TimeUnit.SECONDS);
+        log.info("[reconnect][{} 秒后将发起重连]",5);
     }
 
-    public void connect(){
-        log.info("向网关发起连接");
-        if (channel != null && channel.isActive()) return;
-        try {
-            channel.connect(new InetSocketAddress(zigBeeConfig.getHost(),zigBeeConfig.getPort())).sync();
-            channel.closeFuture().sync();
-        } catch (Exception e) {
-            e.printStackTrace();
-            log.info("连接失败");
+    @PreDestroy
+    public void shutdown() {
+        if (channel != null) {
+            channel.close();
         }
+        group.shutdownGracefully();
     }
-
-//    public ChannelFuture getFuture() throws InterruptedException {
-//        if (future==null || !future.channel().isActive()) {
-//            future = b.connect(zigBeeConfig.getHost(),zigBeeConfig.getPort()).sync();
-//        }
-//        return future;
-//    }
-
-//    public void connect(){
-//        try {
-//            ChannelFuture future = b.connect(zigBeeConfig.getHost(),zigBeeConfig.getPort()).sync();
-//            future.addListener(new ChannelFutureListener() {
-//                @Override
-//                public void operationComplete(ChannelFuture channelFuture) throws Exception {
-//                    if (channelFuture.isSuccess()) {
-//                        channel = channelFuture.channel();
-//                        System.out.println("Connect to server successfully!");
-//                    } else {
-//                        System.out.println("Failed to connect to server, try connect after 1s");
-//
-//                        channelFuture.channel().eventLoop().schedule(new Runnable() {
-//                            @Override
-//                            public void run() {
-//                                connect();
-//                            }
-//                        }, 1, TimeUnit.SECONDS);
-//                    }
-//                }
-//            });
-//        } catch (Exception e) {
-//
-//        }
-//    }
 }
