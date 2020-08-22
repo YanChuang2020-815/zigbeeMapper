@@ -1,6 +1,8 @@
 package com.edgeMapper.zigbeeMapper.service.impl;
 
+import com.alibaba.fastjson.JSONObject;
 import com.edgeMapper.zigbeeMapper.config.DeviceConfig;
+import com.edgeMapper.zigbeeMapper.model.dto.DashBoardDto;
 import com.edgeMapper.zigbeeMapper.model.dto.DeviceDataDto;
 import com.edgeMapper.zigbeeMapper.model.dto.SingleDataDto;
 import com.edgeMapper.zigbeeMapper.service.MqttService;
@@ -10,12 +12,16 @@ import com.edgeMapper.zigbeeMapper.util.GateWayUtil;
 import com.edgeMapper.zigbeeMapper.util.RedisUtil;
 import com.google.gson.JsonObject;
 import lombok.extern.slf4j.Slf4j;
+import org.apache.rocketmq.client.consumer.DefaultMQPushConsumer;
+import org.apache.rocketmq.client.producer.DefaultMQProducer;
+import org.apache.rocketmq.common.message.Message;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 /**
@@ -33,6 +39,9 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
 
     @Autowired
     private RedisUtil redisUtil;
+
+    @Autowired
+    private DefaultMQProducer producer;
 
     @Override
     public void processMsg(byte[] bytes) {
@@ -64,7 +73,7 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     BigDecimal b = new BigDecimal((double) GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5)) / (double) 100);
                                     temperature = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-                                    if (temperature >= 40.0) {
+                                    if (temperature >= 31.0) {
                                         isAlarm = true;
                                     }
                                     data.addProperty("temperature", String.valueOf(temperature));
@@ -88,6 +97,17 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             deviceDataDto.setDeviceName(deviceName);
                             deviceDataDto.setDataList(dataDtos);
                             redisUtil.set(deviceName,deviceDataDto);
+                            log.info("设备数据为{}",deviceDataDto);
+                            try {
+                                DashBoardDto dashBoardDto = new DashBoardDto();
+                                dashBoardDto.setTimestamp(new Date(System.currentTimeMillis()));
+                                dashBoardDto.setDeviceDataDto(deviceDataDto);
+                                Message msg = new Message("dashboard", JSONObject.toJSONString(dashBoardDto).getBytes());
+                                log.info("推送给dashboard的数据为{}",dashBoardDto);
+                                producer.send(msg);
+                            } catch (Exception e) {
+                                log.error("推送mq实时数据异常",e);
+                            }
                             if (isAlarm) {
                                 mqttService.updateDeviceTwin(deviceName, data);
                             }
@@ -136,6 +156,17 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             deviceDataDto.setDeviceName(deviceName);
                             deviceDataDto.setDataList(dataDtos);
                             redisUtil.set(deviceName,deviceDataDto);
+                            log.info("设备数据为{}",deviceDataDto);
+                            try {
+                                DashBoardDto dashBoardDto = new DashBoardDto();
+                                dashBoardDto.setTimestamp(new Date(System.currentTimeMillis()));
+                                dashBoardDto.setDeviceDataDto(deviceDataDto);
+                                Message msg = new Message("dashboard", JSONObject.toJSONString(dashBoardDto).getBytes());
+                                log.info("推送给dashboard的数据为{}",dashBoardDto);
+                                producer.send(msg);
+                            } catch (Exception e) {
+                                log.error("推送mq实时数据异常",e);
+                            }
                             if (isAlarm) {
                                 mqttService.updateDeviceTwin(deviceName, data);
                             }
@@ -164,6 +195,17 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                             deviceDataDto.setDeviceName(deviceName);
                             deviceDataDto.setDataList(dataDtos);
                             redisUtil.set(deviceName,deviceDataDto);
+                            log.info("设备数据为{}",deviceDataDto);
+                            try {
+                                DashBoardDto dashBoardDto = new DashBoardDto();
+                                dashBoardDto.setTimestamp(new Date(System.currentTimeMillis()));
+                                dashBoardDto.setDeviceDataDto(deviceDataDto);
+                                Message msg = new Message("dashboard", JSONObject.toJSONString(dashBoardDto).getBytes());
+                                log.info("推送给dashboard的数据为{}",dashBoardDto);
+                                producer.send(msg);
+                            } catch (Exception e) {
+                                log.error("推送mq实时数据异常",e);
+                            }
                             if (isAlarm) {
                                 mqttService.updateDeviceTwin(deviceName, data);
                             }
