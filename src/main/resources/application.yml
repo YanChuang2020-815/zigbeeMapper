@@ -17,7 +17,7 @@ zigbee:
 device:
   zigbeeDevices:
     "0204": sensor2
-    "1504": pm2.5-1
+    "1504": smoker1
     "0004": lightsensor1
 
 rocketmq:

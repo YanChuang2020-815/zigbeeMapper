@@ -65,15 +65,18 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                 log.info("clusterId is {}",clusterId);
                 DeviceDataDto deviceDataDto = new DeviceDataDto();
                 List<SingleDataDto> dataDtos = new ArrayList<>();
+                DeviceDataDto originData;
                 switch (clusterId) {
                     case "0204":  // 温度传感器上报数据
+                        originData = (DeviceDataDto) redisUtil.get(deviceConfig.getZigbeeDevices().get("0204"));
+                        double originTemperature = Double.valueOf(originData.getDataList().get(0).getValue());
                         for (int i = 0; i < Integer.parseInt(String.valueOf(bytes[7])); i++) {
                             if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0000")) {
                                 if (bytes[10 + i * 5] == 0x29) {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     BigDecimal b = new BigDecimal((double) GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5)) / (double) 100);
                                     temperature = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-                                    if (temperature >= 31.0) {
+                                    if (temperature > originTemperature && temperature > 29.6) {
                                         isAlarm = true;
                                     }
                                     data.addProperty("temperature", String.valueOf(temperature));
@@ -118,6 +121,8 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
 
                     case "1504":  // PM2.5上报
                         String[] PM = {"PM1.0", "PM2.5", "PM10"};
+                        originData = (DeviceDataDto) redisUtil.get(deviceConfig.getZigbeeDevices().get("0204"));
+                        double originSmoke = Double.valueOf(originData.getDataList().get(0).getValue());
                         for (int i = 0; i < Integer.parseInt(String.valueOf(bytes[7])); i++) {
                             if (GateWayUtil.byte2HexStr(Arrays.copyOfRange(bytes, 8 + i * 5, 10 + i * 5)).equals("0100")) {
                                 if (bytes[10 + i * 5] == 0x21) {
@@ -132,11 +137,11 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    if (pm >= 40) {
+                                    if (pm >= 300 && pm > originSmoke) {
                                         isAlarm = true;
                                     }
-                                    data.addProperty("PM2.5", String.valueOf(pm));
-                                    dataDto.setName("PM2.5");
+                                    data.addProperty("smoke", String.valueOf(pm));
+                                    dataDto.setName("smoke");
                                     dataDto.setValue(String.valueOf(pm));
                                     dataDtos.add(dataDto);
                                 }
