@@ -76,7 +76,7 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     BigDecimal b = new BigDecimal((double) GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5)) / (double) 100);
                                     temperature = b.setScale(2, BigDecimal.ROUND_HALF_UP).doubleValue();
-                                    if (temperature > originTemperature && temperature > 29.6) {
+                                    if (temperature > originTemperature) {
                                         isAlarm = true;
                                     }
                                     data.addProperty("temperature", String.valueOf(temperature));
@@ -137,7 +137,7 @@ public class ZigBeeMsgServiceImpl implements ZigBeeMsgService {
                                 if (bytes[10 + i * 5] == 0x21) {
                                     SingleDataDto dataDto = new SingleDataDto();
                                     pm = GateWayUtil.dataBytesToInt(Arrays.copyOfRange(bytes, 11 + i * 5, 13 + i * 5));
-                                    if (pm >= 300 && pm > originSmoke) {
+                                    if (pm >= 100 && pm > originSmoke) {
                                         isAlarm = true;
                                     }
                                     data.addProperty("smoke", String.valueOf(pm));
